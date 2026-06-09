@@ -90,7 +90,7 @@ The instantaneous pixel speed is:
 $$v_i(t) = \frac{d_i(t)}{\Delta t}$$
 
 
-where \(\Delta t = 1 / fps\). In the exported CSV, these values correspond to `dx_px`, `dy_px`, `distance_px`, and `speed_px_per_sec`.
+where ($\Delta t = 1 / fps$). In the exported CSV, these values correspond to `dx_px`, `dy_px`, `distance_px`, and `speed_px_per_sec`.
 
 ### Joint angle calculation
 
@@ -187,31 +187,31 @@ This method represents how far the body part moved in a frame as vibration inten
 
 The movement-change feature is:
 
-\[
-\Delta m_B(t) = |m_B(t) - m_B(t-1)|
-\]
+
+$$\Delta m_B(t) = |m_B(t) - m_B(t-1)|$$
+
 
 `movement_delta` method uses the movement-change value:
 
-\[
-r_B(t) = \Delta m_B(t)
-\]
+
+$$r_B(t) = \Delta m_B(t)$$
+
 
 This method responds to how abruptly the amount of movement changes, rather than to the movement magnitude itself. It produces stronger vibration around motion changes such as starts, stops, and direction changes than during steady movement at a similar speed.
 
 The joint-angle-change feature is:
 
-\[
-\Delta \theta_B(t) = |\theta_B(t) - \theta_B(t-1)|
-\]
+
+$$\Delta \theta_B(t) = |\theta_B(t) - \theta_B(t-1)|$$
+
 
 except for head orientation, which uses the circular angle difference above.
 
 `angle_delta` method uses the body-part angle-change value:
 
-\[
-r_B(t) = \Delta \theta_B(t)
-\]
+
+$$r_B(t) = \Delta \theta_B(t)$$
+
 
 For arms and legs, this method uses the change in the corresponding elbow or knee angle. For the head, it uses the change in head orientation computed from the nose and the midpoint between the two shoulders. This converts posture changes, such as bending, extending, or turning the head, into vibrotactile cues rather than relying on absolute keypoint displacement.
 
@@ -219,15 +219,11 @@ For arms and legs, this method uses the change in the corresponding elbow or kne
 
 Each raw feature series is normalized independently to the range \([0, 1]\):
 
-\[
-a_B(t) =
-\begin{cases}
-\frac{r_B(t)}{\max_t r_B(t)}, & \max_t r_B(t) > 0 \\
-0, & \max_t r_B(t) = 0
-\end{cases}
-\]
 
-where \(r_B(t)\) is the selected raw feature and \(a_B(t)\) is the actuator amplitude. The WAV signal is generated as a mono sine carrier:
+$$a_B(t) = \begin{cases} \frac{r_B(t)}{\max_t r_B(t)}, & \max_t r_B(t) > 0 \\0, & \max_t r_B(t) = 0 \end{cases}$$
+
+
+where ($r_B(t)$) is the selected raw feature and ($a_B(t)$) is the actuator amplitude. The WAV signal is generated as a mono sine carrier:
 
 \[
 s(n) = \sin(2\pi f_c n / f_s)\,a_B(t)\,g
