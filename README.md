@@ -41,7 +41,29 @@ This project extracts human body motion from video using YOLO person detection a
 
 ### Keypoint extraction summary
 
-For each video frame, the current GUI workflow detects candidate person regions with a YOLO person detector, selects the candidate closest to the center of the frame, and passes that region to MediaPipe Pose Landmarker to extract pose keypoints. If pose estimation fails on the YOLO candidate crop, the workflow falls back to running Pose Landmarker on the full frame.
+For each video frame, the current GUI workflow detects candidate person regions with a YOLO person detector and passes the selected region to MediaPipe Pose Landmarker to extract pose keypoints. The initial target is chosen from people closest to the center of the frame. After a target has been selected, later frames prefer candidates that overlap with or remain close to the previous target box or the selected track box, which reduces identity switching when people cross paths or stand near each other. If pose estimation fails on the YOLO candidate crop, the workflow falls back to running Pose Landmarker on the full frame using the same target-box preference when possible.
+
+### Center target selection
+
+The target-person selection uses a two-stage ranking process. First, YOLO person boxes are ranked. Without a previous target, boxes are sorted by distance from the frame center and then by YOLO confidence. With an existing target anchor, boxes are sorted by overlap and distance to the anchor before considering the frame-center distance.
+
+The anchor box is either the previous selected box or the nearest selected track box for the current frame. For a candidate box \(B_c\) and anchor box \(B_a\), the ranking prioritizes:
+
+1. Whether the intersection-over-union is at least 0.05
+2. Larger intersection-over-union
+3. Smaller center distance to the anchor box
+4. Smaller center distance to the video frame
+5. Higher YOLO confidence
+
+The box center distance is:
+
+$$D(B_c, B_a) = \sqrt{(x_c - x_a)^2 + (y_c - y_a)^2}$$
+
+where \((x_c, y_c)\) and \((x_a, y_a)\) are the centers of the candidate and anchor boxes. The intersection-over-union is:
+
+$$IoU(B_c, B_a) = \frac{|B_c \cap B_a|}{|B_c \cup B_a|}$$
+
+After Pose Landmarker estimates landmarks inside the candidate crops, the final pose candidate is selected with the same anchor preference. If no anchor is available, the pose whose torso/keypoint center is closest to the frame center is selected, with pose confidence as the tie breaker.
 
 Only the 13 keypoints needed for vibrotactile conversion are written to the CSV:
 
@@ -57,7 +79,7 @@ Frames with missing detections are filled by linear interpolation from the neare
 
 ### Pose landmarks
 
-For each video frame \(t\), MediaPipe returns normalized landmark coordinates:
+For each video frame ($t$), MediaPipe returns normalized landmark coordinates:
 
 $$p_i(t) = (x_i(t), y_i(t), z_i(t))$$
 
@@ -159,7 +181,7 @@ The WAV conversion script computes three motion-to-amplitude mappings for each b
 | `movement_delta` | Absolute frame-to-frame change of the movement feature |
 | `angle_delta` | Absolute frame-to-frame change of the body-part angle |
 
-All three methods first compute a raw feature \(r_B(t)\) for each body part and then normalize it into a 0 to 1 amplitude envelope. The methods differ in how they define the raw feature.
+All three methods first compute a raw feature ($r_B(t)$) for each body part and then normalize it into a 0 to 1 amplitude envelope. The methods differ in how they define the raw feature.
 
 The body-part definitions are:
 
@@ -171,17 +193,17 @@ The body-part definitions are:
 | `left_leg` | left hip, left knee, left ankle | left knee |
 | `right_leg` | right hip, right knee, right ankle | right knee |
 
-For a body part \(B\) with landmarks \(K_B\), the movement feature is:
+For a body part ($B$) with landmarks ($K_B$), the movement feature is:
 
-\[
-m_B(t) = \frac{1}{|K_B|}\sum_{i \in K_B} d_i(t)
-\]
+
+$$m_B(t) = \frac{1}{|K_B|}\sum_{i \in K_B} d_i(t)$$
+
 
 `movement` method uses this value directly:
 
-\[
-r_B(t) = m_B(t)
-\]
+
+$$r_B(t) = m_B(t)$$
+
 
 This method represents how far the body part moved in a frame as vibration intensity. Larger movement distances produce larger actuator amplitudes.
 
@@ -225,8 +247,8 @@ $$a_B(t) = \begin{cases} \frac{r_B(t)}{\max_t r_B(t)}, & \max_t r_B(t) > 0 \\0, 
 
 where ($r_B(t)$) is the selected raw feature and ($a_B(t)$) is the actuator amplitude. The WAV signal is generated as a mono sine carrier:
 
-\[
-s(n) = \sin(2\pi f_c n / f_s)\,a_B(t)\,g
-\]
 
-where \(f_c\) is the carrier frequency, \(f_s\) is the sample rate, and \(g\) is the output gain. By default, the script uses a 175 Hz carrier, 44.1 kHz sampling rate, and gain 0.8.
+$$s(n) = \sin(2\pi f_c n / f_s)\,a_B(t)\,g$$
+
+
+where ($f_c$) is the carrier frequency, ($f_s$) is the sample rate, and ($g$) is the output gain. By default, the script uses a 175 Hz carrier, 44.1 kHz sampling rate, and gain 0.8.

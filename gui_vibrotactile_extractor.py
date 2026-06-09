@@ -221,7 +221,7 @@ def pose_box(landmarks, frame_width, frame_height):
 	return int(x1), int(y1), int(x2 - x1), int(y2 - y1)
 
 
-def select_center_pose(pose_landmarks, frame_width, frame_height):
+def select_center_pose(pose_landmarks, frame_width, frame_height, target_box=None):
 	candidates = []
 	for landmarks in pose_landmarks:
 		center = pose_center(landmarks, frame_width, frame_height)
@@ -233,7 +233,19 @@ def select_center_pose(pose_landmarks, frame_width, frame_height):
 		candidates.append((distance, -confidence, landmarks, box, center))
 	if not candidates:
 		return None, None, None
-	_, _, landmarks, box, center = min(candidates, key=lambda item: (item[0], item[1]))
+	if target_box is not None:
+		_, _, landmarks, box, center = min(
+			candidates,
+			key=lambda item: (
+				0 if iou(item[3], target_box) >= 0.05 else 1,
+				-iou(item[3], target_box),
+				center_distance(item[3], target_box),
+				item[0],
+				item[1],
+			),
+		)
+	else:
+		_, _, landmarks, box, center = min(candidates, key=lambda item: (item[0], item[1]))
 	return landmarks, box, center
 
 
@@ -260,13 +272,26 @@ def landmarks_from_crop_to_frame(landmarks, crop_box, frame_width, frame_height)
 	return full_landmarks
 
 
-def select_center_pose_with_yolo(frame, yolo_model, pose_landmarker, fallback_landmarker=None):
+def select_center_pose_with_yolo(frame, yolo_model, pose_landmarker, fallback_landmarker=None, target_box=None, previous_box=None):
 	image_h, image_w = frame.shape[:2]
 	person_boxes = detect_yolo_person_boxes(yolo_model, frame)
-	person_boxes = sorted(
-		person_boxes,
-		key=lambda box: (center_distance_from_frame(box[:4], image_w, image_h), -box[4]),
-	)[:YOLO_MAX_CANDIDATES]
+	anchor_box = previous_box or target_box
+	if anchor_box is not None:
+		person_boxes = sorted(
+			person_boxes,
+			key=lambda box: (
+				0 if iou(box[:4], anchor_box) >= 0.05 else 1,
+				-iou(box[:4], anchor_box),
+				center_distance(box[:4], anchor_box),
+				center_distance_from_frame(box[:4], image_w, image_h),
+				-box[4],
+			),
+		)[:YOLO_MAX_CANDIDATES]
+	else:
+		person_boxes = sorted(
+			person_boxes,
+			key=lambda box: (center_distance_from_frame(box[:4], image_w, image_h), -box[4]),
+		)[:YOLO_MAX_CANDIDATES]
 
 	candidates = []
 	for detected_box in person_boxes:
@@ -289,13 +314,26 @@ def select_center_pose_with_yolo(frame, yolo_model, pose_landmarker, fallback_la
 		candidates.append((distance, -confidence, -detected_box[4], full_landmarks, box, center))
 
 	if candidates:
-		_, _, _, landmarks, box, center = min(candidates, key=lambda item: (item[0], item[1], item[2]))
+		if anchor_box is not None:
+			_, _, _, landmarks, box, center = min(
+				candidates,
+				key=lambda item: (
+					0 if iou(item[4], anchor_box) >= 0.05 else 1,
+					-iou(item[4], anchor_box),
+					center_distance(item[4], anchor_box),
+					item[0],
+					item[1],
+					item[2],
+				),
+			)
+		else:
+			_, _, _, landmarks, box, center = min(candidates, key=lambda item: (item[0], item[1], item[2]))
 		return landmarks, box, center
 
 	if fallback_landmarker is None:
 		return None, None, None
 	result = fallback_landmarker.detect(frame_to_mp_image(frame))
-	return select_center_pose(result.pose_landmarks, image_w, image_h)
+	return select_center_pose(result.pose_landmarks, image_w, image_h, target_box=anchor_box)
 
 
 def interpolate_value(before_idx, before_value, after_idx, after_value, frame_idx):
@@ -422,6 +460,28 @@ def select_box_for_frame(tracks, frame_idx, frame_width, frame_height, max_frame
 	return clamp_box(center_box, frame_width, frame_height, TARGET_PADDING)
 
 
+def nearest_track_box_for_frame(tracks, frame_idx, max_frame_gap=None):
+	candidates = []
+	for track in tracks:
+		if not track.boxes:
+			continue
+		nearest = min(track.boxes, key=lambda idx: abs(idx - frame_idx))
+		frame_gap = abs(nearest - frame_idx)
+		if max_frame_gap is not None and frame_gap > max_frame_gap:
+			continue
+		candidates.append((track.boxes[nearest], frame_gap))
+	if not candidates:
+		return None
+	box, _ = min(
+		candidates,
+		key=lambda item: (
+			item[1],
+			-(item[0][2] * item[0][3]),
+		),
+	)
+	return box
+
+
 def write_selected_person_pose_csv(video_path, selected_tracks, output_csv, status=None):
 	angles = {
 		"left_elbow": ("left_shoulder", "left_elbow", "left_wrist"),
@@ -448,13 +508,25 @@ def write_selected_person_pose_csv(video_path, selected_tracks, output_csv, stat
 		status=status,
 	) as fallback_pose:
 		frame_idx = 0
+		previous_box = None
+		max_track_gap = max(1, int(fps * SAMPLE_SECONDS))
 		while True:
 			ret, frame = cap.read()
 			if not ret:
 				break
 
 			image_h, image_w = frame.shape[:2]
-			landmarks, _, _ = select_center_pose_with_yolo(frame, yolo_model, pose, fallback_pose)
+			target_box = nearest_track_box_for_frame(selected_tracks, frame_idx, max_frame_gap=max_track_gap)
+			landmarks, selected_box, _ = select_center_pose_with_yolo(
+				frame,
+				yolo_model,
+				pose,
+				fallback_pose,
+				target_box=target_box,
+				previous_box=previous_box,
+			)
+			if selected_box is not None:
+				previous_box = selected_box
 			frame_points = {}
 
 			if landmarks:
@@ -572,6 +644,7 @@ class VibrotactileExtractorApp:
 		self.preview_image = None
 		self.preview_landmarker = None
 		self.preview_fallback_landmarker = None
+		self.preview_previous_box = None
 		self.yolo_model = None
 		self.selected_group_id = None
 		self.video_cap = None
@@ -660,6 +733,7 @@ class VibrotactileExtractorApp:
 		if self.preview_fallback_landmarker is not None:
 			self.preview_fallback_landmarker.close()
 			self.preview_fallback_landmarker = None
+		self.preview_previous_box = None
 		self.tracks = []
 		self.groups = {}
 		self.video_path = Path(path)
@@ -781,9 +855,11 @@ class VibrotactileExtractorApp:
 			self.yolo_model,
 			self.preview_landmarker,
 			self.preview_fallback_landmarker,
+			previous_box=self.preview_previous_box,
 		)
 		if landmarks is None or box is None:
 			return frame
+		self.preview_previous_box = box
 		x, y, w, h = clamp_box(box, image_w, image_h, TARGET_PADDING)
 		color = (80, 220, 255)
 		center_x = image_w // 2
