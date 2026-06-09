@@ -187,11 +187,11 @@ except for head orientation, which uses the circular angle difference above.
 Each raw feature series is normalized independently to the range \([0, 1]\):
 
 \[
-a_B(t) =
+$a_B(t) =
 \begin{cases}
 \frac{r_B(t)}{\max_t r_B(t)}, & \max_t r_B(t) > 0 \\
 0, & \max_t r_B(t) = 0
-\end{cases}
+\end{cases}$
 \]
 
 where \(r_B(t)\) is the selected raw feature and \(a_B(t)\) is the actuator amplitude. The WAV signal is generated as a mono sine carrier:
