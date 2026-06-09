@@ -248,7 +248,7 @@ $$a_B(t) = \begin{cases} \frac{r_B(t)}{\max_t r_B(t)}, & \max_t r_B(t) > 0 \\0, 
 where ($r_B(t)$) is the selected raw feature and ($a_B(t)$) is the actuator amplitude. The WAV signal is generated as a mono sine carrier:
 
 
-$$s(n) = \sin(2\pi f_c n / f_s)\,a_B(t)\,g$$
+$$s(n) = \sin(2\pi f_c n / f_s),a_B(t),g$$
 
 
 where ($f_c$) is the carrier frequency, ($f_s$) is the sample rate, and ($g$) is the output gain. By default, the script uses a 175 Hz carrier, 44.1 kHz sampling rate, and gain 0.8.
