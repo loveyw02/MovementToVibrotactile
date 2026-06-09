@@ -1,0 +1,19 @@
+file,method,method_description,body_part,source,max_raw_value,max_amplitude_in_wav
+angle\head.wav,angle_delta,Angle difference -> amplitude,head,head_orientation,169.966577,1.000000
+angle\left_arm.wav,angle_delta,Angle difference -> amplitude,left_arm,left_elbow,171.260100,1.000000
+angle\right_arm.wav,angle_delta,Angle difference -> amplitude,right_arm,right_elbow,174.816400,1.000000
+angle\left_leg.wav,angle_delta,Angle difference -> amplitude,left_leg,left_knee,142.974100,1.000000
+angle\right_leg.wav,angle_delta,Angle difference -> amplitude,right_leg,right_knee,168.150300,1.000000
+angle\average.wav,angle_delta,Angle difference -> amplitude,average,average of all body-part wav amplitudes,91.771475,0.552437
+movement\head.wav,movement,Movement amount -> amplitude,head,nose,371.231700,1.000000
+movement\left_arm.wav,movement,Movement amount -> amplitude,left_arm,left_shoulder+left_elbow+left_wrist,339.469467,1.000000
+movement\right_arm.wav,movement,Movement amount -> amplitude,right_arm,right_shoulder+right_elbow+right_wrist,303.268233,1.000000
+movement\left_leg.wav,movement,Movement amount -> amplitude,left_leg,left_hip+left_knee+left_ankle,360.305700,1.000000
+movement\right_leg.wav,movement,Movement amount -> amplitude,right_leg,right_hip+right_knee+right_ankle,358.669800,1.000000
+movement\average.wav,movement,Movement amount -> amplitude,average,average of all body-part wav amplitudes,298.741393,0.858571
+movement_delta\head.wav,movement_delta,Movement change amount -> amplitude,head,nose,368.231700,1.000000
+movement_delta\left_arm.wav,movement_delta,Movement change amount -> amplitude,left_arm,left_shoulder+left_elbow+left_wrist,335.530567,1.000000
+movement_delta\right_arm.wav,movement_delta,Movement change amount -> amplitude,right_arm,right_shoulder+right_elbow+right_wrist,298.091033,1.000000
+movement_delta\left_leg.wav,movement_delta,Movement change amount -> amplitude,left_leg,left_hip+left_knee+left_ankle,337.737300,1.000000
+movement_delta\right_leg.wav,movement_delta,Movement change amount -> amplitude,right_leg,right_hip+right_knee+right_ankle,322.457833,1.000000
+movement_delta\average.wav,movement_delta,Movement change amount -> amplitude,average,average of all body-part wav amplitudes,272.083393,0.817228
