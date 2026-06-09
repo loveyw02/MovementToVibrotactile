@@ -43,15 +43,11 @@ This project extracts human body motion from video using YOLO person detection a
 
 For each video frame \(t\), MediaPipe returns normalized landmark coordinates:
 
-\[
-p_i(t) = (x_i(t), y_i(t), z_i(t))
-\]
+$$p_i(t) = (x_i(t), y_i(t), z_i(t))$$
 
 where \(i\) is the landmark index. The normalized image coordinates are converted to pixel coordinates by:
 
-\[
-X_i(t) = x_i(t) W,\quad Y_i(t) = y_i(t) H
-\]
+$X_i(t) = x_i(t) W$,$\quad Y_i(t) = y_i(t) H$
 
 where \(W\) and \(H\) are the video frame width and height. The main target landmarks are the nose, shoulders, elbows, wrists, hips, knees, and ankles.
 
@@ -187,11 +183,11 @@ except for head orientation, which uses the circular angle difference above.
 Each raw feature series is normalized independently to the range \([0, 1]\):
 
 \[
-$a_B(t) =
+a_B(t) =
 \begin{cases}
 \frac{r_B(t)}{\max_t r_B(t)}, & \max_t r_B(t) > 0 \\
 0, & \max_t r_B(t) = 0
-\end{cases}$
+\end{cases}
 \]
 
 where \(r_B(t)\) is the selected raw feature and \(a_B(t)\) is the actuator amplitude. The WAV signal is generated as a mono sine carrier:
