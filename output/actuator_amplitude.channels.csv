@@ -1,0 +1,6 @@
+channel,actuator,source_keypoints,max_amplitude_in_wav
+1,left_arm,left_shoulder+left_elbow+left_wrist,1.000000
+2,right_arm,right_shoulder+right_elbow+right_wrist,1.000000
+3,left_leg,left_hip+left_knee+left_ankle,1.000000
+4,right_leg,right_hip+right_knee+right_ankle,1.000000
+5,head,nose,1.000000
