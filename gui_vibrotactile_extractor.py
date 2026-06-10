@@ -25,6 +25,8 @@ YOLO_MODEL_NAME = "yolo11n.pt"
 YOLO_PERSON_CLASS_ID = 0
 YOLO_CONFIDENCE = 0.25
 YOLO_MAX_CANDIDATES = 3
+CENTER_RESELECT_X_RATIO = 0.10
+CENTER_RESELECT_ADVANTAGE_RATIO = 0.02
 POSE_LANDMARKER_MODEL_URL = (
 	"https://storage.googleapis.com/mediapipe-models/pose_landmarker/"
 	"pose_landmarker_full/float16/latest/pose_landmarker_full.task"
@@ -182,6 +184,21 @@ def center_distance_from_frame(box, frame_width, frame_height):
 	return math.hypot((x + w / 2) - (frame_width / 2), (y + h / 2) - (frame_height / 2))
 
 
+def center_x_distance_from_frame(box, frame_width):
+	x, _, w, _ = box
+	return abs((x + w / 2) - (frame_width / 2))
+
+
+def should_reselect_center(anchor_box, person_boxes, frame_width):
+	if anchor_box is None or not person_boxes:
+		return False
+	anchor_dx = center_x_distance_from_frame(anchor_box, frame_width)
+	if anchor_dx <= frame_width * CENTER_RESELECT_X_RATIO:
+		return False
+	best_candidate_dx = min(center_x_distance_from_frame(box[:4], frame_width) for box in person_boxes)
+	return best_candidate_dx + frame_width * CENTER_RESELECT_ADVANTAGE_RATIO < anchor_dx
+
+
 def landmark_visibility(landmark):
 	return getattr(landmark, "visibility", getattr(landmark, "presence", 1.0))
 
@@ -276,6 +293,8 @@ def select_center_pose_with_yolo(frame, yolo_model, pose_landmarker, fallback_la
 	image_h, image_w = frame.shape[:2]
 	person_boxes = detect_yolo_person_boxes(yolo_model, frame)
 	anchor_box = previous_box or target_box
+	if should_reselect_center(anchor_box, person_boxes, image_w):
+		anchor_box = None
 	if anchor_box is not None:
 		person_boxes = sorted(
 			person_boxes,

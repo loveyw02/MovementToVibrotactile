@@ -35,6 +35,20 @@ python gui_vibrotactile_extractor.py
 The GUI lets you choose a video, reviews detected person candidates, merge candidates that belong to the same person, then generate the selected person's pose CSV and 15 vibrotactile WAV files.
 You can also play, pause, and scrub through the selected video inside the GUI while checking the detected person boxes.
 
+Run the WAV actuator visualizer:
+
+```bash
+python wav_actuator_visualizer.py
+```
+
+or:
+
+```bash
+python main.py --wav-visualizer
+```
+
+The visualizer lets you assign WAV files to five actuators: `head`, `left_arm`, `left_leg`, `right_arm`, and `right_leg`. During playback, each actuator circle glows and pulses according to the current WAV amplitude.
+
 ## Computational Method
 
 This project extracts human body motion from video using YOLO person detection and MediaPipe Pose Landmarker. The GUI workflow first detects candidate person regions, selects the target person, estimates body landmarks, interpolates missing frames, and writes a frame-wise pose CSV. The CSV is then converted into vibrotactile actuator WAV signals.

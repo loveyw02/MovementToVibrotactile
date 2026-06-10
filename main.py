@@ -7,6 +7,7 @@ import cv2
 import mediapipe as mp
 
 from gui_vibrotactile_extractor import main as run_gui
+from wav_actuator_visualizer import main as run_wav_visualizer
 
 
 def run_pose_csv(video_path: str, output_csv: str, show_window: bool):
@@ -86,6 +87,7 @@ def run_pose_csv(video_path: str, output_csv: str, show_window: bool):
 def parse_args():
 	parser = argparse.ArgumentParser(description="Vibrotactile pose extractor")
 	parser.add_argument("--cli", action="store_true", help="Run the legacy single-video CSV extractor instead of the GUI")
+	parser.add_argument("--wav-visualizer", action="store_true", help="Open the WAV actuator visualization GUI")
 	parser.add_argument("--video", "-v", help="Video path for --cli mode")
 	parser.add_argument("--output", "-o", default="output/pose_coords.csv", help="Output CSV path for --cli mode")
 	parser.add_argument("--no-window", dest="show_window", action="store_false", help="Do not show preview window in --cli mode")
@@ -95,7 +97,9 @@ def parse_args():
 
 if __name__ == "__main__":
 	args = parse_args()
-	if args.cli:
+	if args.wav_visualizer:
+		run_wav_visualizer()
+	elif args.cli:
 		if not args.video:
 			raise SystemExit("--cli mode requires --video")
 		run_pose_csv(args.video, args.output, args.show_window)
